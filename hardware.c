@@ -21,10 +21,10 @@ distance_from_middle bezeichnet die Abweichung nach LINKS vom Mittellinie
 use_side beschreibt, auf welche Seite die Sensoren verwendet werden sollen
 	0 ist links, 1 ist rechts (LEFT_SIDE und RIGHT_SIDE benutzen)
 */
-void drive_straight(int distance_from_middle, char use_side)
+void drive_straight(int distance_from_middle, char use_side, char wanted_speed)
 {
-  char motorA_speed = 255;
-  char motorB_speed = 255;
+  char motorA_speed = wanted_speed;
+  char motorB_speed = wanted_speed;
 
   int tolerance_left;
   int tolerance_right;
@@ -34,7 +34,9 @@ void drive_straight(int distance_from_middle, char use_side)
 
   if (use_side)	/*falls  die Sensoren auf der rechten Seite beruecksichtigt werden sollen*/
   {
-    target_distance = (TRACK_WIDTH / 2) - (ROBOT_WIDTH) + distance_from_middle;		/*bestimme soll-entfernung vom Wand, basierend auf den Roboter- sowie Fahrbahnbreite und der gewÃ¼nschten Abweichung vom Mittellinie*/
+    //target_distance = (TRACK_WIDTH / 2) - (ROBOT_WIDTH) + distance_from_middle;		/*bestimme soll-entfernung vom Wand, basierend auf den Roboter- sowie Fahrbahnbreite und der gewÃ¼nschten Abweichung vom Mittellinie*/
+
+    target_distance = distance_from_middle;    /*anscheinend will der arduino sich nur schlecht auf diese weise steuern lassen weil die angaben ein bissl unpraezise sind
 
     /*Toleranz beruecksichtigen*/
     tolerance_left = target_distance + TOLERANCE;
@@ -43,46 +45,85 @@ void drive_straight(int distance_from_middle, char use_side)
     /*pruefen, ob roboter ausserhalb der Toleranzen ist und Motorengeschiwndigkeiten ggf. anpassen*/
     if (tolerance_right > side.average_distance)
     {
-      motorA_speed = regulate(motorA_speed, target_distance, side.average_distance);		/*Regelalgorithmus fuer Motorengeschwindigkeit ist in ein separates Funktion damit man verschiedene Regelalgorithmen testen kann*/
+      motorA_speed = regulate_speed(motorA_speed, target_distance, side.average_distance);		/*Regelalgorithmus fuer Motorengeschwindigkeit ist in ein separates Funktion damit man verschiedene Regelalgorithmen testen kann*/
     }
     else if (tolerance_left < side.average_distance)
     {
-      motorB_speed = regulate(motorB_speed, target_distance, side.average_distance);
+      motorB_speed = regulate_speed(motorB_speed, target_distance, side.average_distance);
     }
 
-    /*Winker zur Wand Pruefen und ggf. gegensteuern
+    /*Winkel zur Wand Pruefen und ggf. gegensteuern*/
 
-    }
-    else			/*falls die Sensoren auf der linken Seite beruecksichtigt werden sollen*/
+    if (side.angle > 0)
     {
-      target_distance = (TRACK_WIDTH / 2) - (ROBOT_WIDTH) - distance_from_middle;		/*bestimme soll-entfernung vom Wand, basierend auf den Roboter- sowie Fahrbahnbreite und der gewÃ¼nschten Abweichung vom Mittellinie*/
-
-      /*Toleranz beruecksichtigen*/
-      tolerance_left = target_distance - TOLERANCE;
-      tolerance_right = target_distance + TOLERANCE;
-
-      /*pruefen, ob roboter ausserhalb der Toleranzen ist und Motorengeschiwndigkeiten ggf. anpassen*/
-      if (tolerance_right < side.average_distance)
-      {
-        motorB_speed = regulate(motorB_speed, target_distance, side.average_distance);
-      }
-      else if (tolerance_left > side.average_distance)
-      {
-        motorA_speed = regulate(motorA_speed, target_distance, side.average_distance);
-      }
+      motorB_speed = regulate_angle(motorB_speed, side.angle);
+    }
+    else if (side.angle < 0)
+    {
+      motorA_speed = regulate_angle(motorA_speed, side.angle);
     }
 
-    drive(1, motorA_speed, motorB_speed);
   }
+  else			/*falls die Sensoren auf der linken Seite beruecksichtigt werden sollen*/
+  {
+    //target_distance = (TRACK_WIDTH / 2) - (ROBOT_WIDTH) - distance_from_middle;		/*bestimme soll-entfernung vom Wand, basierend auf den Roboter- sowie Fahrbahnbreite und der gewÃ¼nschten Abweichung vom Mittellinie*/
+
+    target_distance = distance_from_middle;
+
+    /*Toleranz beruecksichtigen*/
+    tolerance_left = target_distance - TOLERANCE;
+    tolerance_right = target_distance + TOLERANCE;
+
+    /*pruefen, ob roboter ausserhalb der Toleranzen ist und Motorengeschiwndigkeiten ggf. anpassen*/
+    if (tolerance_right < side.average_distance)
+    {
+      motorB_speed = regulate_speed(motorB_speed, target_distance, side.average_distance);
+    }
+    else if (tolerance_left > side.average_distance)
+    {
+      motorA_speed = regulate_speed(motorA_speed, target_distance, side.average_distance);
+    }
+
+    /*Winkel zur Wand Pruefen und ggf. gegensteuern*/
+
+    if (side.angle > 0)
+    {
+      motorA_speed = regulate_angle(motorA_speed, side.angle);
+    }
+    else if (side.angle < 0)
+    {
+      motorB_speed = regulate_angle(motorB_speed, side.angle);
+    }
+  }
+
+  drive(1, motorA_speed, motorB_speed);
+}
+
+/*
+Diese Funktion bestimmt die Motorengeschwindigkeit anhand der Winkel in dem der Roboter auf den Wand steht.
+Die quadratische Korrektur ist nötig da wir im Moment nur eine Sehr vage Winkelmessung hinbekommen
+*/
+int regulate_angle(char motor_speed, int angle)
+{
+  motor_speed -= pow(angle, 2) / HARDNESS;
+  if (motor_speed < 50)
+  {
+    motor_speed = 50;
+  }
+  return motor_speed;
 }
 
 /*
 diese Funktion bestimmt die Motorgeschwindigkeit anhand der Abweichung vom vorgegebenen Mittelwert
 hier koennen verschiedene Regelalgorithmen implementiert werden
 */
-int regulate(char motor_speed, int target_distance, int distance)
+int regulate_speed(char motor_speed, int target_distance, int distance)
 {
   motor_speed -= (distance - target_distance) * HARDNESS;
+  if (motor_speed < 50)
+  {
+    motor_speed = 50;
+  }
   return motor_speed;
 }
 
@@ -111,7 +152,7 @@ void drive(char direction, char motorA_speed, char motorB_speed)
 }
 
 /*
-Diese Funktion dreht den Motor in die angegebene Richtung (1 fÃ¼r Rechtsdreh) um ungefaehr den angegebenen winkel in Grad
+Diese Funktion dreht den Motor in die angegebene Richtung (1 fuer Rechtsdreh) um ungefaehr den angegebenen winkel in Grad
 */
 void turn(char direction, short degree)
 {
@@ -214,10 +255,10 @@ int calc_angle(int values[])
 
   /*Situation 1*/
   double angle = atan2((double)opposite, (double)DIST_IR_FRONT_BACK);
-  
+
   /*da atan2 winkel in radian liefert, muessen die noh in grad konvertiert werden*/
 
-  angle = angle / (2.0 * PI) * 360.0;
+  angle = angle / (2.0 * PI) * 360.0 * 10;
 
   return (int)angle;
 }

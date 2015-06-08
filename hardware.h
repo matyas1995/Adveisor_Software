@@ -35,9 +35,9 @@ die Ordnung ist links nach rechts, vorne, hinten*/
 /*Abstand zwischen vorderen und hinteres Seiten-IR Sensor, wird fuer die Winkelbestimmung zur Wand benoetigt*/
 #define DIST_IR_FRONT_BACK 160.0
 /*Toleranz der Abweichung vom Mittellinie in mm*/
-#define TOLERANCE 10
+#define TOLERANCE 20
 /*Parameter, der definiert, we hart gegengesteuert werden soll*/
-#define HARDNESS 1
+#define HARDNESS 4
 /*Bezeichnet die Breite des Roboters*/
 #define ROBOT_WIDTH 150
 /*Bezeichnet die Breite der Fahrbahn, damit eine variable Abweichung vom Mittellinie eingestellt werden kann*/
@@ -60,24 +60,31 @@ distance_from_middle bezeichnet die Abweichung nach LINKS vom Mittellinie
 use_side beschreibt, auf welche Seite die Sensoren verwendet werden sollen
 0 ist links, 1 ist rechts (LEFT_SIDE und RIGHT_SIDE benutzen)
 */
-void drive_straight(int distance_from_middle, char use_side);
+void drive_straight(int, char, char);
 
 /*
 diese Funktion bestimmt die Motorgeschwindigkeit anhand der Abweichung vom vorgegebenen Mittelwert
 hier koennen verschiedene Regelalgorithmen implementiert werden
 */
-int regulate(char motor_speed, int target_distance, int distance);
+int regulate_speed(char, int, int);
+
+
+/*
+Diese Funktion bestimmt die Motorengeschwindigkeit anhand der Winkel in dem der Roboter auf den Wand steht.
+Die quadratische Korrektur ist nötig da wir im Moment nur eine Sehr vage Winkelmessung hinbekommen
+*/
+int regulate_angle(char, int);
 
 /*
 Diese Funktion ist da, um das Roboter fahren lassen zu koennen
 direction steht fuer Richtung, 1 ist vorwaerts, 0 fuer rueckwaerts
 */
-void drive(char direction, char motorA_speed, char motorB_speed);
+void drive(char, char, char);
 
 /*
 Diese Funktion dreht den Motor in die angegebene Richtung (1 fÃ¼r Rechtsdreh) um ungefaehr den angegebenen winkel in Grad
 */
-void turn(char direction, short degree);
+void turn(char, short);
 
 /*
 Motoren stoppen. Geschwindigkeit wird einfach auf 0 gesetzt. Wegen der Getriebe muss nicht aktiv gebremst werden
@@ -88,25 +95,25 @@ void stop_motors(void);
 Liefert Abstand- und Winkelinformationen zu eine Seite in ein "side_info" struct zurueck
 aufpassen, kann sein, dass hier malloc und pointern benÃ¶tigt werden! -> waere zumindest von der Speicherverbrauch her besser
 */
-struct side_info get_side_info(char side);
+struct side_info get_side_info(char);
 
 /*
 Diese Funktion berechnet den Mittelwert aus drei integern und gibt es als integer zurÃ¼ck
 */
-int calc_average(int values[], int size_of_array);
+int calc_average(int[], int);
 
 /*
 Diese funktion berechnet den Winkel zwischen Roboter und Wand und liefert einen Wert in Grad zurÃ¼ck
 Falls Winkel positiv ist, bedeutet das, dass Roboter in Richtung Wand steht
 Falls Winkel negaitv ist, Roboter steht in Richtung weg von der Wand
 */
-int calc_angle(int values[]);
+int calc_angle(int[]);
 
 /*
 Diese Funktion liest analoge Werte der IR Sensoren aus und berechnet davon die Entfernung
 Die zurueckgelieferte Werte muessen in Millimetern erfolgen!
 */
-int get_ir_dist(int pin);
+int get_ir_dist(int);
 
 #endif
 
