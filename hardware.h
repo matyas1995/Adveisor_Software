@@ -29,7 +29,7 @@ die Ordnung ist links nach rechts, vorne, hinten*/
 #define IR_BACK_LEFT 44
 #define IR_BACK_RIGHT 46
 /*hier muss noch die Drehgeschwindigkeit der Roboters gemessen und eingetragen werden*/
-#define MILLIS_PER_DEGREE 40
+#define MILLIS_PER_DEGREE 40.0
 #define LEFT_SIDE 0
 #define RIGHT_SIDE 1
 /*Abstand zwischen vorderen und hinteres Seiten-IR Sensor, wird fuer die Winkelbestimmung zur Wand benoetigt*/
