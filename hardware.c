@@ -270,7 +270,7 @@ Die zurueckgelieferte Werte muessen in Millimetern erfolgen!
 int get_ir_dist(int pin)
 {
   int voltage = analogRead(pin);
-  float distance = sqrt(1.0 / voltage);
+  float distance = 1.0 / voltage;
   int dist = (int)(distance * 1000.0);
   return dist;
 }
