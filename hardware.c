@@ -1,5 +1,7 @@
 #include "hardware.h"
 
+int interruptCtr = 1;
+
 /*
 Diese Funktion muss im Setup() teil des Arduino Programms aufgerufen werden, um die Hardware zu initialisieren
 */
@@ -13,6 +15,38 @@ void hardware_setup(void)
   pinMode(IR_FRONT_RIGHT, INPUT);
   pinMode(IR_BACK_LEFT, INPUT);
   pinMode(IR_BACK_RIGHT, INPUT);
+
+
+  /*
+  Timer für den Barcode initialisieren
+  */
+  //http://2manyprojects.net/timer-interrupts
+  pmc_set_writeprotect(false);		 // disable write protection for pmc registers
+  pmc_enable_periph_clk(ID_TC7);	 // enable peripheral clock TC7
+
+  /* we want wavesel 01 with RC */
+  TC_Configure(TC2, 1, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4);
+  TC_SetRC(TC2, 1, 131200);			//656.250KHz / .2 seconds = 131200
+  TC_Start(TC2, 1);
+
+  // enable timer interrupts on the timer
+  TC2->TC_CHANNEL[1].TC_IER = TC_IER_CPCS;   // IER = interrupt enable register
+  TC2->TC_CHANNEL[1].TC_IDR = ~TC_IER_CPCS;  // IDR = interrupt disable register
+
+  /* Enable the interrupt in the nested vector interrupt controller */
+  /* TC4_IRQn where 4 is the timer number * timer channels (3) + the channel number (=(1*3)+1) for timer1 channel1 */
+  NVIC_EnableIRQ(TC7_IRQn);
+}
+
+
+/*
+Interrupt handler für den Timer
+*/
+void TC7_Handler()
+{
+	// We need to get the status to clear it and allow the interrupt to fire again
+	//Das muss anderswohin, weil sonst der Timer immer neu gestartet wird
+	TC_GetStatus(TC2, 1);
 }
 
 /*

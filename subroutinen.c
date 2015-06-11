@@ -1,4 +1,13 @@
-#include subroutinen.h
+#include "subroutinen.h"
+#include "hardware.h"
+
+void treppe_rampe()
+{
+	while (barc_read == false)
+	{
+		drive_straight(0, RIGHT_SIDE, 120);
+	}
+}
 
 void kreisverkehr()
 {
@@ -30,4 +39,20 @@ void kreisverkehr()
 		}
 		*/
 	}
+}
+
+void barriere()
+{
+	while (barc_read == false)
+	{
+		int d1, d2;
+
+		d1=digitalRead(IR_FRONT_LEFT);
+		d2=digitalRead(IR_FRONT_RIGHT);
+
+		if (d1 ==1 || d2 ==1)
+			stop_motors();
+		else
+			drive_straight(0, RIGHT_SIDE, 120);
+	}		
 }
