@@ -1,5 +1,6 @@
-#include "subroutinen.c"
-#include "hardware.c"
+#include "DueTimer.h"
+#include "subroutinen.h"
+#include "hardware.h"
 #include <math.h>
 
 void setup() {

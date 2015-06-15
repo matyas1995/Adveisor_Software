@@ -13,6 +13,6 @@ void kreisverkehr(void);
 
 void barriere(void);
 
-static void ir_interrupt();
+void ir_interrupt();
 
 #endif

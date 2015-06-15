@@ -21,12 +21,16 @@ void hardware_setup(void)
 
   timer_config();
 
-  attachInterrupt(BC_PIN, &ir_interrupt, RISING); // Initialisiert Interrupt
+  attachInterrupt(BC_PIN, ir_interrupt, RISING); // Initialisiert Interrupt
 }
 
 /*Funktion um Timer für den Barcode initialisieren*/
 void timer_config()
 {
+  Timer3.attachInterrupt(timer_handler);
+  Timer3.start(BC_TIMER * 100);
+  
+  /*
   // Tutorial, aus dem der Code ueberommen wurde: http://2manyprojects.net/timer-interrupts
   int tics = (int) (BC_TIMER * 656250.0 / 1000.0); // Umrechnung Millisekunden -> tics
 
@@ -41,18 +45,25 @@ void timer_config()
   TC2->TC_CHANNEL[0].TC_IER = TC_IER_CPCS;   // IER = interrupt enable register
   TC2->TC_CHANNEL[0].TC_IDR = ~TC_IER_CPCS;  // IDR = interrupt disable register
 
-  /* Enable the interrupt in the nested vector interrupt controller */
+  // Enable the interrupt in the nested vector interrupt controller
   //TC4_IRQn where 4 is the timer number * timer channels (3) + the channel number (=(1*3)+1) for timer1 channel1
   NVIC_EnableIRQ(TC3_IRQn);
+  */
 }
 
 /*Interrupt Handler für den Timer (entspicht timer_abgelaufen)*/
-void TC7_Handler(void)
+void timer_handler()
+{
+  Timer3.stop();
+  }
+
+/*Interrupt Handler für den Timer (entspicht timer_abgelaufen)*/
+/*void TC7_Handler(void)
 {
   TC_GetStatus(TC2, 0);
   TC_Stop (TC2, 0); // Stopt den Timer
   barc_read = true;
-}
+}*/
 
 /*
 Diese Funktion ist aequivalent zur geradeaus_fahren Funktion, nur mit der Unterschied, dass ich hier versuche, keine Mischung von Englischen und Deutschen woertern zu verwenden

@@ -5,6 +5,7 @@
 /*Alle Groessenangaben sind in Millimetern!!!*/
 #include <math.h>
 #include <Arduino.h>
+#include "DueTimer.h"
 
 /*Motor B ist rechtes Motor*/
 #define MOTOR_B_PWM 11
@@ -56,6 +57,9 @@ struct side_info
 static int interruptCtr = 1;
 
 void timer_config();
+
+/*Interrupt Handler für den Timer (entspicht timer_abgelaufen)*/
+void timer_handler(void);
 
 /*
 Diese Funktion muss im Setup() teil des Arduino Programms aufgerufen werden, um die Hardware zu initialisieren
