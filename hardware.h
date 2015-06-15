@@ -35,19 +35,27 @@ die Ordnung ist links nach rechts, vorne, hinten*/
 /*Abstand zwischen vorderen und hinteres Seiten-IR Sensor, wird fuer die Winkelbestimmung zur Wand benoetigt*/
 #define DIST_IR_FRONT_BACK 160.0
 /*Toleranz der Abweichung vom Mittellinie in mm*/
-#define TOLERANCE 20
+#define TOLERANCE 10
 /*Parameter, der definiert, we hart gegengesteuert werden soll*/
-#define HARDNESS 4
+#define HARDNESS 10
 /*Bezeichnet die Breite des Roboters*/
 #define ROBOT_WIDTH 150
 /*Bezeichnet die Breite der Fahrbahn, damit eine variable Abweichung vom Mittellinie eingestellt werden kann*/
 #define TRACK_WIDTH 300
+/*Barcodetimer in Millisekuden*/
+#define BC_TIMER 500.0
+/*Pin fuer den Barcode Scanner (ist noch nicht korrekter Pin)*/
+#define BC_PIN 12
 
 struct side_info
 {
   int angle;
   int average_distance;
 };
+
+static int interruptCtr = 1;
+
+void timer_config();
 
 /*
 Diese Funktion muss im Setup() teil des Arduino Programms aufgerufen werden, um die Hardware zu initialisieren
