@@ -3,16 +3,12 @@
 #define KREISVERKEHR_TOLERANZ 10
 #include "hardware.h"
 
-
-static int bc_counter; // Zaehler zum Einlesen des Barcodes
-static int barc_read;
+static int barc_read = 0;
 
 void treppe_rampe(void);
 
 void kreisverkehr(void);
 
 void barriere(void);
-
-void ir_interrupt();
 
 #endif

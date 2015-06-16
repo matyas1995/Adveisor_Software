@@ -5,61 +5,46 @@
 /*Alle Groessenangaben sind in Millimetern!!!*/
 #include <math.h>
 #include <Arduino.h>
-#include "DueTimer.h"
+#include <AFMotor.h>
 
-/*Motor B ist rechtes Motor*/
-#define MOTOR_B_PWM 11
-/*Motor A ist linkes Motor*/
-#define MOTOR_A_PWM 3
-#define	MOTOR_A_BRAKE 9
-#define MOTOR_B_BRAKE 8
-#define MOTOR_A_DIR 12
-#define MOTOR_B_DIR 13
-/*IR_1 bis IR_3 muessen die Sensoren auf der RECHTEN seite sein, sonst funktioniert get_side_info() nicht*/
 /*niedrigste Sensornummer ist vorne, hoechste hinten*/
-#define IR_1 4
-#define IR_2 3
-#define IR_3 2
-#define IR_4 5
-#define IR_5 6
-#define IR_6 7
-/*hier muessen die digitalen IR Sensorpins eingetragen werden
-die Ordnung ist links nach rechts, vorne, hinten*/
-#define IR_FRONT_LEFT 50
-#define IR_FRONT_RIGHT 52
-#define IR_BACK_LEFT 44
-#define IR_BACK_RIGHT 46
+#define FRONT_RIGHT_TRIG 46
+#define FRONT_RIGHT_ECHO 48
+#define BACK_RIGHT_TRIG 30
+#define BACK_RIGHT_ECHO 28
+#define FRONT_FRONT_TRIG 41
+#define FRONT_FRONT_ECHO 39
 /*hier muss noch die Drehgeschwindigkeit der Roboters gemessen und eingetragen werden*/
-#define MILLIS_PER_DEGREE 2.5
+#define MILLIS_PER_DEGREE 7.7777777777
 #define LEFT_SIDE 0
 #define RIGHT_SIDE 1
 /*Abstand zwischen vorderen und hinteres Seiten-IR Sensor, wird fuer die Winkelbestimmung zur Wand benoetigt*/
-#define DIST_IR_FRONT_BACK 160.0
+#define DIST_IR_FRONT_BACK 140.0
 /*Toleranz der Abweichung vom Mittellinie in mm*/
 #define TOLERANCE 10
 /*Parameter, der definiert, we hart gegengesteuert werden soll*/
-#define HARDNESS 10
+#define HARDNESS 4
 /*Bezeichnet die Breite des Roboters*/
 #define ROBOT_WIDTH 150
 /*Bezeichnet die Breite der Fahrbahn, damit eine variable Abweichung vom Mittellinie eingestellt werden kann*/
 #define TRACK_WIDTH 300
-/*Barcodetimer in Millisekuden*/
-#define BC_TIMER 500.0
-/*Pin fuer den Barcode Scanner (ist noch nicht korrekter Pin)*/
-#define BC_PIN 12
+
+static AF_DCMotor motor_right(2); //Motor an rechter Seite
+static AF_DCMotor motor_left(1); //Motor an linker Seite
+
+struct sensor
+{
+  int echo_pin;
+  int trig_pin;
+};
+
+static struct sensor sensor1, sensor2, sensor3;
 
 struct side_info
 {
   int angle;
   int average_distance;
 };
-
-static int interruptCtr = 1;
-
-void timer_config();
-
-/*Interrupt Handler für den Timer (entspicht timer_abgelaufen)*/
-void timer_handler(void);
 
 /*
 Diese Funktion muss im Setup() teil des Arduino Programms aufgerufen werden, um die Hardware zu initialisieren
@@ -125,7 +110,7 @@ int calc_angle(int[]);
 Diese Funktion liest analoge Werte der IR Sensoren aus und berechnet davon die Entfernung
 Die zurueckgelieferte Werte muessen in Millimetern erfolgen!
 */
-int get_ir_dist(int);
+int get_dist(struct sensor);
 
 #endif
 

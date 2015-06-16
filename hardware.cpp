@@ -1,69 +1,27 @@
 #include "hardware.h"
-#include "subroutinen.h"
-#include <Arduino.h>
 
 /*
 Diese Funktion muss im Setup() teil des Arduino Programms aufgerufen werden, um die Hardware zu initialisieren
 */
 void hardware_setup(void)
 {
-  pinMode(MOTOR_A_BRAKE, OUTPUT);
-  pinMode(MOTOR_B_BRAKE, OUTPUT);
-  pinMode(MOTOR_A_DIR, OUTPUT);
-  pinMode(MOTOR_B_DIR, OUTPUT);
-  pinMode(IR_FRONT_LEFT, INPUT);
-  pinMode(IR_FRONT_RIGHT, INPUT);
-  pinMode(IR_BACK_LEFT, INPUT);
-  pinMode(IR_BACK_RIGHT, INPUT);
-  barc_read = 0;
-  bc_counter = 0;
-  pinMode(BC_PIN, OUTPUT);
-
-  timer_config();
-
-  attachInterrupt(BC_PIN, ir_interrupt, RISING); // Initialisiert Interrupt
+  motor_right.setSpeed(255);
+  motor_left.setSpeed(255);
+  motor_right.run(RELEASE);
+  motor_left.run(RELEASE);
+  sensor1.trig_pin = FRONT_RIGHT_TRIG;
+  sensor1.echo_pin = FRONT_RIGHT_ECHO;
+  sensor2.trig_pin = BACK_RIGHT_TRIG;
+  sensor2.echo_pin = BACK_RIGHT_ECHO;
+  sensor3.trig_pin = FRONT_FRONT_TRIG;
+  sensor3.echo_pin = FRONT_FRONT_ECHO;
+  pinMode(sensor1.trig_pin, OUTPUT);
+  pinMode(sensor1.echo_pin, INPUT);
+  pinMode(sensor2.trig_pin, OUTPUT);
+  pinMode(sensor2.echo_pin, INPUT);
+  pinMode(sensor3.echo_pin, INPUT);
+  pinMode(sensor3.trig_pin, OUTPUT);
 }
-
-/*Funktion um Timer für den Barcode initialisieren*/
-void timer_config()
-{
-  Timer3.attachInterrupt(timer_handler);
-  Timer3.start(BC_TIMER * 100);
-  
-  /*
-  // Tutorial, aus dem der Code ueberommen wurde: http://2manyprojects.net/timer-interrupts
-  int tics = (int) (BC_TIMER * 656250.0 / 1000.0); // Umrechnung Millisekunden -> tics
-
-  pmc_set_writeprotect(false);		 // disable write protection for pmc registers
-  pmc_enable_periph_clk(ID_TC3);	 // enable peripheral clock TC3
-
-  //we want wavesel 01 with RC
-  TC_Configure(TC2, 0, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4);
-  TC_SetRC(TC2, 0, tics); // Setzt Timerlaenge
-
-  // enable timer interrupts on the timer
-  TC2->TC_CHANNEL[0].TC_IER = TC_IER_CPCS;   // IER = interrupt enable register
-  TC2->TC_CHANNEL[0].TC_IDR = ~TC_IER_CPCS;  // IDR = interrupt disable register
-
-  // Enable the interrupt in the nested vector interrupt controller
-  //TC4_IRQn where 4 is the timer number * timer channels (3) + the channel number (=(1*3)+1) for timer1 channel1
-  NVIC_EnableIRQ(TC3_IRQn);
-  */
-}
-
-/*Interrupt Handler für den Timer (entspicht timer_abgelaufen)*/
-void timer_handler()
-{
-  Timer3.stop();
-  }
-
-/*Interrupt Handler für den Timer (entspicht timer_abgelaufen)*/
-/*void TC7_Handler(void)
-{
-  TC_GetStatus(TC2, 0);
-  TC_Stop (TC2, 0); // Stopt den Timer
-  barc_read = true;
-}*/
 
 /*
 Diese Funktion ist aequivalent zur geradeaus_fahren Funktion, nur mit der Unterschied, dass ich hier versuche, keine Mischung von Englischen und Deutschen woertern zu verwenden
@@ -183,22 +141,18 @@ direction steht fuer Richtung, 1 ist vorwaerts, 0 fuer rueckwaerts
 */
 void drive(char direction, char motorA_speed, char motorB_speed)
 {
-  digitalWrite(MOTOR_A_BRAKE, LOW);	/*Bremsen loesen*/
-  digitalWrite(MOTOR_B_BRAKE, LOW);
-
+  motor_right.setSpeed(motorA_speed);
+    motor_left.setSpeed(motorB_speed);
   if (direction)						/*Richtung setzen*/
   {
-    digitalWrite(MOTOR_A_DIR, HIGH);
-    digitalWrite(MOTOR_B_DIR, HIGH);
+    motor_right.run(FORWARD);
+    motor_left.run(FORWARD);
   }
   else
   {
-    digitalWrite(MOTOR_A_DIR, LOW);
-    digitalWrite(MOTOR_B_DIR, LOW);
+    motor_right.run(BACKWARD);
+    motor_left.run(BACKWARD);
   }
-
-  analogWrite(MOTOR_A_PWM, motorA_speed);
-  analogWrite(MOTOR_B_PWM, motorB_speed);
 }
 
 /*
@@ -208,22 +162,19 @@ void turn(char direction, short degree)
 {
   int duration = (int)(MILLIS_PER_DEGREE * (float)degree);
 
-  digitalWrite(MOTOR_A_BRAKE, LOW);	/*Bremsen loesen*/
-  digitalWrite(MOTOR_B_BRAKE, LOW);
+  motor_right.setSpeed(255);
+  motor_left.setSpeed(255);
 
   if (direction)
   {
-    digitalWrite(MOTOR_A_DIR, LOW);
-    digitalWrite(MOTOR_B_DIR, HIGH);
+    motor_right.run(BACKWARD);
+    motor_left.run(FORWARD);
   }
   else
   {
-    digitalWrite(MOTOR_A_DIR, HIGH);
-    digitalWrite(MOTOR_B_DIR, LOW);
+    motor_right.run(FORWARD);
+    motor_left.run(BACKWARD);
   }
-
-  analogWrite(MOTOR_A_PWM, 255);
-  analogWrite(MOTOR_B_PWM, 255);
 
   delay(duration);
 
@@ -235,8 +186,8 @@ Motoren stoppen. Geschwindigkeit wird einfach auf 0 gesetzt. Wegen der Getriebe 
 */
 void stop_motors(void)
 {
-  analogWrite(MOTOR_A_PWM, 0);
-  analogWrite(MOTOR_B_PWM, 0);
+  motor_right.run(RELEASE);
+  motor_left.run(RELEASE);
 }
 
 
@@ -248,28 +199,27 @@ struct side_info get_side_info(char side)
 {
   struct side_info result;	/*struct in dem das Ergebnis gespeichert wird*/
 
-  int sensorPins[3];		/*array zum speichern der Sensorpins auf der benoetigten Seite*/
-  int sensorDist[3];		/*array zum speichern der gemessenen Sensorwerte*/
+  struct sensor sensors[2];		/*array zum speichern der Sensorpins auf der benoetigten Seite*/
+  int sensorDist[2];		/*array zum speichern der gemessenen Sensorwerte*/
 
   if (side)                     /*falls rechte Seite benutzt werden soll*/
   {
-    sensorPins[0] = IR_1;
-    sensorPins[1] = IR_2;
-    sensorPins[2] = IR_3;
+    sensors[0] = sensor1;
+    sensors[1] = sensor2;
   }
   else
   {
-    sensorPins[0] = IR_4;
-    sensorPins[1] = IR_5;
-    sensorPins[2] = IR_6;
+    /*Muss dringend geändert werden!!!!!!*/
+    sensors[0] = sensor1;
+    sensors[1] = sensor2;
   }
   int i = 0;
-  for (i = 0; i < 3; i++)		/*auslesen der sensoren und werte in array speichern*/
+  for (i = 0; i < 2; i++)		/*auslesen der sensoren und werte in array speichern*/
   {
-    sensorDist[i] = get_ir_dist(sensorPins[i]);
+    sensorDist[i] = get_dist(sensors[i]);
   }
 
-  result.average_distance = calc_average(sensorDist, 3);	/*Durchschnittlicher Entfernung vom Wand wird berechnet und im Ergebnis gespeichert*/
+  result.average_distance = calc_average(sensorDist, 2);	/*Durchschnittlicher Entfernung vom Wand wird berechnet und im Ergebnis gespeichert*/
   result.angle = calc_angle(sensorDist);				/*Berechne winkel zwischen Roboter und den Wand*/
 
   return result;
@@ -301,27 +251,37 @@ Die Verwendung von Pointern verschwendet weniger RAM
 */
 int calc_angle(int values[])
 {
-  int opposite = values[2] - values[0];		/*Wegunterschied zwischen den hinten und vorne gemessenen Entfernung*/
+  int opposite = values[0] - values[1];		/*Wegunterschied zwischen den hinten und vorne gemessenen Entfernung*/
 
   /*Situation 1*/
-  double angle = atan2((double)opposite, (double)DIST_IR_FRONT_BACK);
+  //double angle = atan2((double)opposite, (double)DIST_IR_FRONT_BACK);
 
   /*da atan2 winkel in radian liefert, muessen die noh in grad konvertiert werden*/
 
-  angle = angle / (2.0 * PI) * 360.0 * 10;
+ // angle = angle / (2.0 * PI) * 360.0 * 10;
+ 
+ 
 
-  return (int)angle;
+ // return (int)angle;
+ 
+ return opposite;
 }
 
 /*
 Diese Funktion liest analoge Werte der IR Sensoren aus und berechnet davon die Entfernung
 Die zurueckgelieferte Werte muessen in Millimetern erfolgen!
 */
-int get_ir_dist(int pin)
+int get_dist(struct sensor Sensor)
 {
-  int voltage = analogRead(pin);
-  float distance = 1.0 / voltage;
-  int dist = (int)(distance * 1000.0);
-  return dist;
+  long duration = 0;
+
+  digitalWrite(Sensor.trig_pin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(Sensor.trig_pin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(Sensor.trig_pin, LOW);
+  duration = pulseIn(Sensor.echo_pin, HIGH);
+  duration = (duration / 2.0) / 2.91;
+  return (int)duration;
 }
 
